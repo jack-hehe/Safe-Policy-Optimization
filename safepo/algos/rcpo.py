@@ -3,10 +3,11 @@ import torch
 from safepo.algos.base import PolicyGradient
 from safepo.algos.lagrangian_base import Lagrangian
 from safepo.algos.policy_gradient import PG
+from safepo.algos.trpo import TRPO
 import safepo.common.mpi_tools as mpi_tools
 
 
-class RCPO(PG, Lagrangian):
+class RCPO(TRPO, Lagrangian):
     def __init__(
             self,
             algo='rcpo', 
@@ -16,9 +17,10 @@ class RCPO(PG, Lagrangian):
             lambda_optimizer='Adam',
             **kwargs
         ):
-        PG.__init__(
+        super().__init__(
             self, 
             algo=algo,
+            use_cost_value_function=True,
             **kwargs
         )
 
@@ -47,7 +49,7 @@ class RCPO(PG, Lagrangian):
 
         # ensure that lagrange multiplier is positive
         penalty = self.lambda_range_projection(self.lagrangian_multiplier).item()
-        loss_pi += (ratio *  penalty * data['target_c']).mean()
+        loss_pi += (ratio *  penalty * data['cost_adv']).mean()
         loss_pi -= self.entropy_coef * dist.entropy().mean()
 
         # Useful extra info
@@ -127,37 +129,3 @@ class RCPO(PG, Lagrangian):
                     self.update_lagrange_multiplier(ep_costs)
                     self.logger.store(EpRet=ep_ret, EpLen=ep_len, EpCosts=ep_costs)
                     o, ep_ret, ep_costs, ep_len = self.env.reset(), 0., 0., 0
-
-
-    def update_value_net(self, data: dict) -> None:
-        # Divide whole local epoch data into mini_batches which is mbs size
-        mbs = self.local_steps_per_epoch // self.num_mini_batches
-        assert mbs >= 16, f'Batch size {mbs}<16'
-
-        penalty = self.lambda_range_projection(self.lagrangian_multiplier).item()
-        loss_v = self.compute_loss_v(data['obs'], data['target_v'] - penalty * data['target_c'])
-        self.loss_v_before = loss_v.item()
-
-        indices = np.arange(self.local_steps_per_epoch)
-        val_losses = []
-        for _ in range(self.train_v_iterations):
-            # Shuffle for mini-batch updates
-            np.random.shuffle(indices)  
-            # 0 to mini_batch_size with batch_train_size step
-            for start in range(0, self.local_steps_per_epoch, mbs):
-                end = start + mbs  # iterate mini batch times
-                mb_indices = indices[start:end]
-                self.vf_optimizer.zero_grad()
-                loss_v = self.compute_loss_v(
-                    obs=data['obs'][mb_indices],
-                    ret=data['target_v'][mb_indices] - penalty * data['target_c'][mb_indices])
-                loss_v.backward()
-                val_losses.append(loss_v.item())
-                # Average grads across MPI processes
-                mpi_tools.mpi_avg_grads(self.ac.v)
-                self.vf_optimizer.step()
-
-        self.logger.store(**{
-            'Loss/DeltaValue': np.mean(val_losses) - self.loss_v_before,
-            'Loss/Value': self.loss_v_before,
-        })

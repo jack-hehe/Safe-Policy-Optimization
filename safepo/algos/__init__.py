@@ -1,5 +1,8 @@
+from safepo.algos.crpo import CRPO
+from safepo.algos.pdo import PDO
 from safepo.algos.policy_gradient import PG
 from safepo.algos.natural_pg import NPG
+from safepo.algos.rcpo import RCPO
 from safepo.algos.trpo import TRPO
 from safepo.algos.ppo import PPO
 from safepo.algos.trpo_lag import TRPO_Lag
@@ -23,4 +26,7 @@ REGISTRY = {
     'p3o': P3O,
     'ipo': IPO,
     'cppo-pid': CPPOPid,
+    'pdo': PDO,
+    'crpo': CRPO,
+    'rcpo': RCPO,
 }
