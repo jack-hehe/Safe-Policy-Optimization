@@ -1,18 +1,24 @@
 
 import torch
+from safepo.algos.policy_gradient import PG
 from safepo.algos.trpo import TRPO
 
 
-class CRPO(TRPO):
+class CRPO(PG):
     def __init__(self, algo='crpo', eta=0.5, cost_limit=25., **kwargs):
-        super().__init__(algo=algo, use_cost_value_function=True, **kwargs)
+        super().__init__(
+            algo=algo, 
+            use_cost_value_function=True, 
+            use_discount_cost_update_lag=True,
+            **kwargs
+            )
         self.eta = eta
         self.cost_limit = cost_limit
         self.need_update_constrains = False
 
     def update(self):
-        ep_costs = self.logger.get_stats('EpCosts')[0]
-        if ep_costs <= self.eta + self.cost_limit:
+        _, _, cv, _ = self.ac.step(torch.as_tensor(self.buf.obs_buf[0], dtype=torch.float32))
+        if cv <= self.eta + self.cost_limit:
             self.need_update_constrains = False
         else:
             self.need_update_constrains = True
@@ -34,7 +40,6 @@ class CRPO(TRPO):
             loss_pi = (ratio * data['cost_adv']).mean()
         else:
             loss_pi = -(ratio * data['adv']).mean()
-        loss_pi -= self.entropy_coef * dist.entropy().mean()
 
         # Useful extra info
         approx_kl = (0.5 * (dist.mean - data['act']) ** 2
