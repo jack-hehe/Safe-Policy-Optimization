@@ -13,9 +13,12 @@ defaults:
         - 64
       activation: tanh
   adv_estimation_method: gae
+  cost_limit: 25
   epochs: 500
   gamma: 0.99
   steps_per_epoch: 30000
+  lam: 0.95
+  lam_c: 0.95
 
 Swimmer-v3:
   actor: mlp
