@@ -1,5 +1,6 @@
 .DS_Store
 safepo/runs
+safepo/runs*
 safepo/bash-run
 safepo.egg-info/
 __pycache__/

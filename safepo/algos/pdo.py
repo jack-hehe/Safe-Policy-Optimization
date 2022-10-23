@@ -55,7 +55,7 @@ class PDO(PG, Lagrangian):
 
         # ensure that lagrange multiplier is positive
         penalty = self.lambda_range_projection(self.lagrangian_multiplier).item()
-        loss_pi += (ratio * penalty * data['cum_cost']).mean()
+        loss_pi += (ratio * penalty * data['target_c']).mean()
 
         # Useful extra info
         approx_kl = .5 * (data['log_p'] - _log_p).mean().item()

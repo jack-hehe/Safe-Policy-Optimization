@@ -1,14 +1,15 @@
 
 import torch
+from safepo.algos.natural_pg import NPG
 from safepo.algos.policy_gradient import PG
 from safepo.algos.trpo import TRPO
 from safepo.common.buffer_with_cum_cost import Buffer_With_Cum_Cost
 
 
-class CRPO(PG):
+class CRPO_With_NPG(NPG):
     def __init__(
         self, 
-        algo='crpo', 
+        algo='crpo-with-NPG', 
         eta=0.5, 
         cost_limit=25.,
         pi_lr=3e-4,

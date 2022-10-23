@@ -13,7 +13,7 @@ defaults:
         - 64
       activation: tanh
   adv_estimation_method: gae
-  epochs: 500
+  epochs: 400
   gamma: 0.99
   cost_limit: 25
   steps_per_epoch: 30000

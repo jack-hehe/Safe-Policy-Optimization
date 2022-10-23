@@ -11,6 +11,6 @@ class Buffer_With_Cum_Cost:
     def get(self):
         data = self.buffer.get()
         cost_buf = np.cumsum(self.buffer.cost_buf[::-1], axis=0)[::-1].copy()
-        data["cum_cost"] = torch.as_tensor(cost_buf, dtype=torch.float32)
+        data["target_c"] = torch.as_tensor(cost_buf, dtype=torch.float32)
 
         return data
