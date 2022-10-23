@@ -11,12 +11,13 @@ class RCPO(PG, Lagrangian):
             self,
             algo='rcpo', 
             cost_limit=25., 
-            lagrangian_multiplier_init=0.2,
-            lambda_lr=5e-7, 
+            lagrangian_multiplier_init=0.4,
+            lambda_lr=5e-5, 
             lambda_optimizer='Adam',
             pi_lr=3e-4,
             vf_lr=1.5e-4,
-            lam_c=1,
+            # lam_c=1,
+            entropy_coef=0,
             # use_cost_value_function=True,
             lambda_schedule_lm=1-1e-9,
             **kwargs
@@ -24,11 +25,12 @@ class RCPO(PG, Lagrangian):
         PG.__init__(
             self, 
             algo=algo,
+            entropy_coef=entropy_coef,
             # use_cost_value_function=use_cost_value_function,
             # use_discount_cost_update_lag=True,
             pi_lr=pi_lr,
             vf_lr=vf_lr,
-            lam_c=lam_c,
+            # lam_c=lam_c,
             **kwargs
         )
         
@@ -45,9 +47,6 @@ class RCPO(PG, Lagrangian):
                 optimizer=self.lambda_optimizer,
                 lr_lambda=lambda _: lambda_schedule_lm
             )
-        
-
-
 
     def algorithm_specific_logs(self):
         super().algorithm_specific_logs()
@@ -81,3 +80,9 @@ class RCPO(PG, Lagrangian):
         # print(f"EpCosts[0] = {ep_costs}")
         self.update_lagrange_multiplier(ep_costs)
 
+    def update_value_net(self, data: dict) -> None:
+        penalty = self.lambda_range_projection(self.lagrangian_multiplier).item()
+        data['target_v'] = data['target_v'] - penalty * data['target_c']
+        
+
+        PG.update_value_net(self, data)
